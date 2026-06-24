@@ -1,0 +1,22 @@
+[project]
+name = "llm-gateway-mcp"
+version = "1.0.0"
+description = "Policy-routed MCP gateway over multiple LLM providers, with Sakana-inspired multi-role orchestration."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Felipe Márquez" }]
+requires-python = ">=3.10"
+dependencies = [
+    "mcp[cli]>=1.2.0",
+    "httpx>=0.27.0",
+    "pyyaml>=6.0",
+    "anthropic>=0.40.0",
+    "google-genai>=0.4.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

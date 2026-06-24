@@ -1,0 +1,27 @@
+# Secrets — NEVER commit
+.env
+*.env
+!.env.example
+
+# Spend ledger / local data
+.llm_gateway/
+*.db
+*.db-wal
+*.db-shm
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

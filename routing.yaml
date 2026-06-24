@@ -1,0 +1,119 @@
+# routing.yaml — declarative LLM routing policy.
+#
+# The gateway never lets the caller pick a model directly. The caller names a
+# task_class; this file maps it to a (provider, model, max_tokens). There is no
+# single "best" model — route by task. Edit freely; the server reads this at start.
+#
+# Pricing notes live in each providers/*.py MODELS table (illustrative — verify
+# against the provider's live pricing before trusting cost preflight).
+
+version: "1.0.0"
+
+# ── Per-task_class routing ────────────────────────────────────────────────────
+defaults:
+  quick_answer:
+    provider: openai
+    model: gpt-4o-mini
+    max_tokens: 1024
+    rationale: "Cheap, fast — short factual answers and classification."
+
+  general_reasoning:
+    provider: deepseek
+    model: deepseek-reasoner
+    max_tokens: 4000
+    rationale: "Strong reasoning at low cost; default thinking route."
+
+  long_context:
+    provider: gemini
+    model: gemini-2.5-pro
+    max_tokens: 8000
+    rationale: "Large-context reading/analysis."
+
+  deep_audit:
+    provider: anthropic
+    model: claude-opus-4-8
+    max_tokens: 16000
+    rationale: "Highest-stakes single-model review / final audit."
+
+  batch_classification:
+    provider: gemini
+    model: gemini-2.5-flash-lite
+    max_tokens: 200
+    rationale: "High-volume labeling — cheapest adequate model, terse output."
+
+  # Multi-model parallel panels (handled specially in server.py): each member
+  # gets the SAME original prompt; the caller synthesizes convergence/dissent.
+  dual_opinion:
+    members:
+      - {provider: openai,    model: gpt-4o}
+      - {provider: anthropic, model: claude-sonnet-4-6}
+    max_tokens: 4000
+    rationale: "Two independent opinions for cross-checking."
+
+  triple_review:
+    members:
+      - {provider: openai,    model: gpt-4o}
+      - {provider: anthropic, model: claude-sonnet-4-6}
+      - {provider: gemini,    model: gemini-2.5-pro}
+    cost_cap_usd: 1.00
+    max_tokens: 4000
+    rationale: "Three blind, independent reviews; agreement is evidence."
+
+# ── Cost preflight ────────────────────────────────────────────────────────────
+cost_preflight:
+  enabled: true
+  chars_per_token: 4
+  warn_usd: 0.50
+  block_usd: 15.00
+
+# ── Visibility / independence contracts (Conductor T-02) ──────────────────────
+# For blind parallel panels, certify in meta that each member saw only the
+# original prompt. enforce: hard => fail-closed if independence can't be proven.
+visibility:
+  dual_opinion:
+    mode: blind
+    members_see: original_prompt_only
+    enforce: hard
+  triple_review:
+    mode: blind
+    members_see: original_prompt_only
+    enforce: hard
+
+# ── Per-task_class fallback chains (empty / absent => no fallback) ─────────────
+fallback:
+  general_reasoning:
+    - {provider: gemini, model: gemini-2.5-flash}
+  long_context:
+    - {provider: anthropic, model: claude-sonnet-4-6}
+  deep_audit:
+    - {provider: openai, model: gpt-4o}
+  quick_answer:
+    - {provider: anthropic, model: claude-haiku-4-5}
+
+# ── Sequential orchestration (compose tool): plan -> execute -> verify ────────
+# role -> model assignment + per-role instruction templates + depth graduation.
+orchestration:
+  roles:
+    planner:  {provider: gemini,    model: gemini-2.5-pro,  max_tokens: 4000}
+    worker:   {provider: openai,    model: gpt-4o,          max_tokens: 8000}
+    verifier: {provider: anthropic, model: claude-sonnet-4-6, max_tokens: 2000}
+
+  # Optional — omit to use the built-in defaults in orchestration/roles.py.
+  instructions:
+    planner: >-
+      You are the Thinker. Decompose the task into atomic, verifiable steps.
+      Do NOT solve or draft the artifact. Return: assumptions, subtasks, risks,
+      and a verification checklist.
+    worker: >-
+      You are the Worker. Execute ONLY the assigned task using the provided plan
+      and context. Do not critique the plan unless it is materially contradictory.
+      Return only the requested product.
+    verifier: >-
+      You are the Verifier. Judge whether the output satisfies the ORIGINAL task
+      on its own merits. Reply with exactly one of 'ACCEPT' or 'REVISE: <reasons>'.
+      No other prose.
+
+  depth:
+    trivial:  {plan: false, verify: false}
+    standard: {plan: false, verify: true}
+    complex:  {plan: true,  verify: true, replan_on_fail: true, max_replans: 1}
