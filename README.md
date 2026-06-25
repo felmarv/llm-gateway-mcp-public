@@ -127,6 +127,12 @@ Register it with an MCP client (example `mcp.json` entry):
 
 You only need keys for the providers your `routing.yaml` actually targets.
 
+> **One key is enough to start** — any single-model `task_class` works with just that
+> provider's key. But the real value here is the cross-model orchestration (panels,
+> blind triangulation, plan→execute→verify), which needs **2+ different providers** to
+> shine — agreement across independent models is only evidence if the models are
+> actually different. So: 1 key works, **2 or more is recommended**.
+
 ---
 
 ## Tools
