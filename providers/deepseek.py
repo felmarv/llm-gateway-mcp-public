@@ -38,6 +38,14 @@ async def complete(
         return {"status": "error", "error": f"unknown DeepSeek model: {model}",
                 "meta": {"provider": "deepseek", "model": model}}
 
+    # Resolve the key up front so a missing key returns the clean error envelope
+    # (matching openai/anthropic/gemini) instead of raising out of the httpx try block.
+    try:
+        api_key = _api_key()
+    except RuntimeError as exc:
+        return {"status": "error", "error": str(exc),
+                "meta": {"provider": "deepseek", "model": model}}
+
     payload: dict = {"model": model, "messages": messages, "max_tokens": max_tokens or 4096}
 
     t0 = time.monotonic()
@@ -45,7 +53,7 @@ async def complete(
         async with httpx.AsyncClient(timeout=timeout) as client:
             resp = await client.post(
                 f"{BASE_URL}/chat/completions",
-                headers={"Authorization": f"Bearer {_api_key()}",
+                headers={"Authorization": f"Bearer {api_key}",
                          "Content-Type": "application/json"},
                 json=payload,
             )
