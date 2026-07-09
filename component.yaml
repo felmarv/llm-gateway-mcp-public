@@ -1,0 +1,17 @@
+# component.yaml — manifiesto LOCAL de llm-gateway-mcp-public (F5b rollout, tipo `mcp`).
+# Indexado por felmarv/sistema-atlas. Schema: sistema-atlas/policy/component-manifest.schema.json (draft-07).
+# PUBLICO — secretos verificados limpios 2026-07-08 (F5b). Espejo divergente, no fork-sync.
+id: llm-gateway-mcp-public
+type: mcp
+host: mac
+depends_on: []
+external_deps: []
+run:
+  mode: library
+  unit_or_entry: "repo PUBLICO — espejo divergente/independiente del gateway (div. 25-jun); NO hay servidor MCP en .mcp.json"
+dr:
+  priority: 4
+  backup: "GitHub felmarv/llm-gateway-mcp-public (PUBLICO, off-site)"
+  runbook: "README.md"
+status: active
+verified: "2026-07-08"
