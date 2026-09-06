@@ -1,0 +1,45 @@
+# Puerta de la suite de llm-gateway-mcp-public — COLA-OPUS #464.
+#
+# POR QUÉ EXISTE. 22 tests que no corría NADIE en cada cambio: el repo no tenía ningún workflow ni carril de deploy.
+#
+# SIN `paths:` A PROPÓSITO (lección de COLA-OPUS #416). Un check con filtro de rutas se
+# SALTA en los PRs que no las tocan, y un check requerido que nunca corre deja el PR
+# BLOCKED para siempre.
+#
+# INTÉRPRETE Y DEPS MEDIDOS, no supuestos (2026-09-06): `pyproject.toml` declara
+# `requires-python = ">=3.10"` y `[project.optional-dependencies] dev = ["pytest>=8.0.0"]`.
+#
+# SIN `--frozen`: este repo NO versiona `uv.lock` (medido con `git ls-files`, que ve lo
+# que se clona — no con `ls`, que ve el árbol de trabajo). Con lock ausente, `--frozen`
+# no da reproducibilidad: da una puerta que no abre.
+#
+# `--extra dev` y no `--dev`: el grupo está en `[project.optional-dependencies]`, que es
+# un EXTRA. Con el flag equivocado se instalaría sin pytest y la puerta "pasaría" vacía.
+#
+# ESTADO AL INSTALAR ESTA PUERTA: verde — 22 passed en 1.6 s.
+name: tests
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: instalar deps
+        run: uv sync --extra dev
+      - name: suite
+        run: uv run pytest -q -p no:cacheprovider
