@@ -29,3 +29,4 @@ dist/
 # uv.lock — este repo NO lo versiona (decisión declarada en .github/workflows/tests.yml:12:
 # el CI corre SIN `--frozen` porque el lock está ausente en el clon). Ignorarlo mantiene
 # cierta esa premisa; una corrida local de `uv` ya no deja WIP huérfano.
+uv.lock
